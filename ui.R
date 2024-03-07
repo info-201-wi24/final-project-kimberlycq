@@ -1,6 +1,12 @@
 ## OVERVIEW TAB INFO
 
 library(shiny)
+library(ggplot2)
+library(plotly)
+library(dplyr)
+library(shinythemes)
+
+joined_data <- read.csv("joinedandcleaned.csv")
 
 overview_tab <- tabPanel("Overview",
   fluidRow(
@@ -28,21 +34,40 @@ overview_tab <- tabPanel("Overview",
 ## VIZ 1 TAB INFO
 
 viz_1_sidebar <- sidebarPanel(
-  h2("Options for graph"),
-  #TODO: Put inputs for modifying graph here
+  h2("Options for Visualization"),
+  sliderInput("yearRange", "Select Year Range",
+              min = 2000, max = 2020,
+              value = c(2005, 2015)),
+  sliderInput("billboardThreshold", "Billboard Appearance Threshold",
+              min = 0, max = 100,
+              value = 10)
 )
 
 viz_1_main_panel <- mainPanel(
-  h2("Vizualization 1 Title"),
-  # plotlyOutput(outputId = "your_viz_1_output_id")
+  h2("Simplified Visualization of Popularity"),
+  plotlyOutput(outputId = "simplePlot")
 )
 
-viz_1_tab <- tabPanel("Viz 1 tab title",
-  sidebarLayout(
-    viz_1_sidebar,
-    viz_1_main_panel
-  )
+viz_1_tab <- tabPanel("Visualization of Popularity",
+                      sidebarLayout(
+                        viz_1_sidebar,
+                        viz_1_main_panel
+                      )
 )
+
+server <- function(input, output) {
+  output$simplePlot <- renderPlotly({
+    filtered_data <- joined_data %>%
+      filter(timesOnBillboard >= input$billboardThreshold) %>%
+      arrange(desc(timesOnBillboard))
+    plot <- ggplot(filtered_data[1:10,], aes(x=reorder(song, timesOnBillboard), y=timesOnBillboard, fill=artist)) +
+      geom_bar(stat="identity") +
+      theme_minimal() +
+      labs(title="Top Songs by Billboard Appearances", x="Song", y="Times on Billboard") +
+      coord_flip() 
+    ggplotly(plot)
+  })
+}
 
 ## VIZ 2 TAB INFO
 
@@ -104,8 +129,6 @@ conclusion_tab <- tabPanel("Key Findings",
                            h2("Conclusion:"),
                            p("The synthesis of our research highlights American Idol as a formidable force in the music industry, serving not just as a mere entertainment platform, but as a substantial influencer shaping the popular music landscape. American Idol has consistently served as a springboard for musical careers through its decades-long run, catapulting performances from its stage onto the Billboard charts with remarkable frequency. This phenomenon evidences the show's remarkable capacity to forecast and forge musical trends and preferences. The ripple effects extend beyond immediate commercial success, affecting music production, artist development, and even the broader culture of music consumption. As we've seen, performances on American Idol correlate with a demonstrable increase in song popularity, suggesting that the show's audience has a voracious appetite for the music they hear on the program, which translates into significant commercial outcomes. Furthermore, American Idol's musical aspect celebrates and promotes diversity in musical genres, fostering an appreciation for various musical expressions. This, in turn, contributes to a vibrant cultural tapestry and reinforces American Idol's role as a critical cultural institution. As such, American idol's influence is wide beyond the television screens and into the core of the American music scene, affirming its role as a cultural force and a powerhouse of music promotion.")
 )
-
-library(shinythemes)
 
 ui <- navbarPage(strong("American Idol and the Billboard Charts"),
                  theme = shinytheme("superhero"),
